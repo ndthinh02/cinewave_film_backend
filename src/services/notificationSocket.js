@@ -28,3 +28,4 @@ export async function attachNotificationSocket(server) {
   }
 }
 export function emitNotification(userId, id) { io?.to(`user:${userId}`).emit("notification", { id }); }
+export function emitPaymentSuccess(userId, payload) { io?.to(`user:${userId}`).emit('payment:success', payload); }

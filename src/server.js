@@ -8,11 +8,17 @@
   import authRoutes from "./routes/authRoutes.js";
   import userRoutes from "./routes/userRoutes.js";
   import communityRoutes from "./routes/communityRoutes.js";
+  import premiumRoutes from './routes/premiumRoutes.js';
+  import paymentRoutes from './routes/paymentRoutes.js';
+  import PaymentOrder from './models/PaymentOrder.js';
+  import PremiumSubscription from './models/PremiumSubscription.js';
   import { avatarDirectory } from "./controllers/avatarController.js";
 
   const app = express();
   app.use(cors());
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({ limit: "1mb", verify: (req, res, buffer) => {
+    if (req.originalUrl.split('?')[0] === '/api/payments/webhook') req.rawBody = Buffer.from(buffer);
+  } }));
   app.use(morgan("dev"));
   app.get("/api/health", (_, res) =>
     res.json({ ok: true, service: "cinewave-api" }),
@@ -20,6 +26,8 @@
   app.use("/api/auth", authRoutes);
   app.use("/api/user", userRoutes);
   app.use("/api/community", communityRoutes);
+  app.use('/api/premium', premiumRoutes);
+  app.use('/api/payments', paymentRoutes);
   app.use((err, req, res, next) => {
     console.error(err);
     res.status(500).json({ message: "Lỗi máy chủ" });
@@ -49,6 +57,7 @@
       const { default: MovieCollection } = await import('./models/MovieCollection.js');
       await MovieCollection.createIndexes();
       const server = createServer(app);
+      await Promise.all([PaymentOrder.createIndexes(), PremiumSubscription.createIndexes()]);
       await attachNotificationSocket(server);
       server.listen(port, () => console.log(`API http://localhost:${port}`));
     })
